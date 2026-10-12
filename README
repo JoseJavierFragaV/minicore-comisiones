@@ -1,0 +1,113 @@
+# Mini-Core de Cálculo de Comisiones
+
+Aplicación web que calcula las comisiones de un equipo de vendedores a partir de un rango de fechas. Suma las ventas de cada vendedor en ese rango y aplica la regla de comisión más alta que alcance según su monto total. Desarrollada como ejercicio MVC para la asignatura de Ingeniería Web.
+
+## Enlaces
+
+| Recurso | Enlace |
+| Frontend (Netlify) | https://poetic-melomakarona-59400a.netlify.app |
+| API (Render) | https://minicore-comisiones-gjlt.onrender.com |
+| Video explicativo | https://youtu.be/lan5uZ19ihI |
+
+> El backend usa el plan gratuito de Render, que se suspende tras un periodo de inactividad. La primera petición puede tardar hasta un minuto en responder.
+
+## Tecnologías
+
+- **Backend:** Java 21, Spring Boot 3.5, Spring Data JPA, Gradle
+- **Base de datos:** H2 en memoria (se recrea y se carga con datos de ejemplo en cada arranque)
+- **Frontend:** HTML, CSS y JavaScript sin dependencias
+- **Despliegue:** Render con Docker (backend) y Netlify (frontend)
+
+## Arquitectura MVC
+
+```
+src/main/java/com/minicore/jordancore
+├── model        Entidades: Vendedor, Venta, Regla
+├── repository   Acceso a datos con Spring Data JPA
+├── service      Lógica de negocio (ComisionService / ComisionServiceImpl)
+├── controller   API REST (ComisionController)
+├── dto          Objetos de entrada y salida (RangoFechasDTO, ComisionDTO)
+└── config       CORS y carga de datos de ejemplo (DataLoader)
+```
+
+El flujo de una petición es: el navegador envía las fechas al **controller**, que delega en el **service**; este consulta las ventas y las reglas mediante los **repository**, calcula las comisiones y devuelve una lista de **DTO** en formato JSON.
+
+## Reglas de comisión
+
+| Regla | Monto mínimo vendido | Porcentaje |
+|---|---|---|
+| Comisión 10 | 2000 | 10% |
+| Comisión 5 | 1000 | 5% |
+| Comisión 2.5 | 500 | 2.5% |
+
+Se aplica la regla de mayor monto mínimo que el vendedor alcance. Si no alcanza ninguna, no recibe comisión.
+
+## API
+
+### `POST /api/core/calcular`
+
+Solicitud:
+
+```json
+{
+  "fechaInicio": "2025-06-01",
+  "fechaFin": "2025-06-30"
+}
+```
+
+Respuesta:
+
+```json
+[
+  {
+    "vendedor": "Maria Garcia",
+    "totalVendido": 2100.00,
+    "reglaAplicada": "Comisión 10",
+    "comisionCalculada": 210.0000
+  },
+  {
+    "vendedor": "Juan Perez",
+    "totalVendido": 1100.50,
+    "reglaAplicada": "Comisión 5",
+    "comisionCalculada": 55.0250
+  },
+  {
+    "vendedor": "Pedro Lopez",
+    "totalVendido": 450.00,
+    "reglaAplicada": "Sin comisión",
+    "comisionCalculada": 0
+  }
+]
+```
+
+## Datos de ejemplo
+
+Se cargan al iniciar la aplicación desde `DataLoader`: tres vendedores (Juan Perez, Maria Garcia y Pedro Lopez) con ventas entre junio y julio de 2025. Al ampliar el rango hasta el 31 de julio, la venta de 5000 de Juan eleva su total y cambia la regla aplicada.
+
+## Ejecutar en local
+
+Requisitos: **JDK 21**.
+
+```bash
+# Windows
+.\gradlew.bat bootRun
+
+# Mac / Linux
+./gradlew bootRun
+```
+
+La API queda disponible en `http://localhost:8080`. Para probarla:
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/core/calcular -ContentType "application/json" -Body '{"fechaInicio":"2025-06-01","fechaFin":"2025-06-30"}'
+```
+
+La consola de la base de datos está en `http://localhost:8080/h2-console` (JDBC URL `jdbc:h2:mem:jordancoredb`, usuario `sa`, sin contraseña).
+
+El frontend está en la carpeta `frontend/`. Para usarlo en local, abre `index.html` con un servidor estático (por ejemplo la extensión Live Server de VS Code), ya que el CORS del backend admite `localhost`.
+
+## Despliegue
+
+- **Backend:** servicio web en Render con runtime Docker. El `Dockerfile` compila con Gradle y ejecuta el `.jar` con JRE 21. El puerto se toma de la variable `PORT`.
+- **Frontend:** sitio estático en Netlify. La URL de la API está definida en la constante `API_URL` dentro de `frontend/index.html`.
+- **CORS:** `CorsConfig` permite los orígenes `https://*.netlify.app` y `http://localhost:*`.
