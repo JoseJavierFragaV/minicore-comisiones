@@ -14,10 +14,9 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("http://localhost:3000","https://frontminicorejcomision.onrender.com")
+                        .allowedOriginPatterns("https://*.netlify.app", "http://localhost:*")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                        .allowedHeaders("*")
-                        .allowCredentials(true);
+                        .allowedHeaders("*");
             }
         };
     }
